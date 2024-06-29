@@ -1,16 +1,18 @@
 import numpy as np
 import os
+import pandas as pd
+from sklearn.model_selection import train_test_split
 import time
 import torch
 
-import utils
+from train_Saiseikai import utils
 
 def train_one_epoch(model, train_loader, valid_loader, test_loader,
                     optimizer, criterion, epoch,
-                    device, log_writer=None, args=None):
+                    device, args=None):
     train_dic = train_epoch(model, train_loader,
                 optimizer, criterion, epoch,
-                device, log_writer, args=None)
+                device, args=None)
     valid_dic = valid_and_test_epoch(model, valid_loader,
                 optimizer, criterion, epoch,
                 device, args=None)
@@ -21,7 +23,7 @@ def train_one_epoch(model, train_loader, valid_loader, test_loader,
 
 def train_epoch(model, loader,
                 optimizer, criterion, epoch,
-                device, log_writer=None, args=None):
+                device, args=None):
     model.train()
     scaler = torch.cuda.amp.GradScaler()
     t = time.time()

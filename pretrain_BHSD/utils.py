@@ -13,25 +13,12 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
 
+def save_args(args, log_dir, file):
+    log_file = os.path.join(log_dir, 'log.txt')
+    with open(log_file, 'w') as f:
+        f.write(f'Script name: {file}\n')
+        for arg in vars(args):
+            f.write(f'{arg}: {getattr(args, arg)}\n')
+
 def info_message(message, *args, end="\n"):
     print(message.format(*args), end=end)
-
-def create_result_df(args):
-    train_result = pd.DataFrame({
-            'Epoch': range(1, args.epochs+1),
-            'Loss': None,
-            'Dice coefficient': None,
-            'MSE': None,
-        })
-    valid_result = pd.DataFrame({
-            'Epoch': range(1, args.epochs+1),
-            'Loss': None,
-            'Dice coefficient': None,
-            'MSE': None,
-        })
-    return train_result, valid_result
-
-def write_values(epoch, result, dic):
-    result.loc[epoch-1, 'Loss'] = dic['loss']
-    result.loc[epoch-1, 'Dice coefficient'] = dic['dice']
-    result.loc[epoch-1, 'MSE'] = dic['mse']

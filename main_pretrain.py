@@ -1,8 +1,10 @@
 import argparse
+import datetime
 import numpy as np
 import os
 import torch
 from torch import nn
+from torch.utils.tensorboard import SummaryWriter
 
 from pretrain_BHSD import data_utils, metrics, engine_pretrain, utils
 from models.unet3d.model import *
@@ -13,7 +15,7 @@ def main():
     parser.add_argument('--batch_size', default=8, type=int,
                         help='Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus')
     parser.add_argument('--epochs', default=100, type=int)
-    parser.add_argument('--patience', default=20, type=int)
+    parser.add_argument('--patience', default=10, type=int)
 
     # Model parameters
     parser.add_argument('--model', default='Unet3d', type=str, metavar='MODEL',
@@ -31,26 +33,28 @@ def main():
                         help='weight decay (default: 1e-5)')
 
     # Dataset parameters
-    parser.add_argument('--output_dir', default='./trained_model', type=str,
+    parser.add_argument('--log_dir', default='./trained_model', type=str,
                         help='path where to save, empty for no saving')
 
     # training parameters
     parser.add_argument('--seed', default=178, type=int)
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
-    parser.add_argument('--num_workers', default=8, type=int)
+    parser.add_argument('--num_workers', default=6, type=int)
 
     args = parser.parse_args()
 
+    utils.set_seed(args.seed)
     device = torch.device(args.device)
-    output_dir = args.output_dir
+    current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_dir = os.path.join(args.log_dir, current_time)
+
     best_valid_score = np.inf
     lastmodel = None
 
-    utils.set_seed(args.seed)
-    os.makedirs(output_dir, exist_ok=True)
-
-    train_result, valid_result = utils.create_result_df(args)
+    os.makedirs(log_dir, exist_ok=True)
+    utils.save_args(args, log_dir, os.path.basename(__file__))
+    log_writer = SummaryWriter(log_dir=log_dir)
 
     train_loader, valid_loader = data_utils.get_loader(args)
 
@@ -82,20 +86,23 @@ def main():
     elif args.opt == 'adamw':
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.decay)
 
-    # scheduler = WarmupCosineSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=args.num_steps)
-
     for epoch in range(1, args.epochs + 1):
         utils.info_message("EPOCH: {}", epoch)
 
         train_dic, valid_dic = engine_pretrain.train_one_epoch(
                     model, train_loader, valid_loader,
                     optimizer, criterion, epoch,
-                    device,
-                    args=args
+                    device, args=args
                     )
         
-        utils.write_values(epoch, train_result, train_dic)
-        utils.write_values(epoch, valid_result, valid_dic)
+        # Train log_writer
+        log_writer.add_scalar('Train/Loss', scalar_value=train_dic['loss'], global_step=epoch)
+        log_writer.add_scalar('Train/Dice', scalar_value=train_dic['dice'], global_step=epoch)
+        log_writer.add_scalar('Train/MSE', scalar_value=train_dic['mse'], global_step=epoch)
+        # Valid log_writer
+        log_writer.add_scalar('Train/Loss', scalar_value=valid_dic['loss'], global_step=epoch)
+        log_writer.add_scalar('Train/Dice', scalar_value=valid_dic['dice'], global_step=epoch)
+        log_writer.add_scalar('Train/MSE', scalar_value=valid_dic['mse'], global_step=epoch)
 
         utils.info_message(
             "[Epoch Train: {}] loss: {:.4f}, dice: {:.4f}, time: {:.2f} s",
@@ -107,7 +114,7 @@ def main():
         )
 
         if best_valid_score > valid_dic['loss']: 
-            lastmodel = engine_pretrain.save_model(epoch, model, optimizer, best_valid_score, output_dir, args)
+            lastmodel = engine_pretrain.save_model(epoch, model, optimizer, best_valid_score, log_dir, args)
             utils.info_message(
                 "auc improved from {:.4f} to {:.4f}. Saved model to '{}'", 
                 best_valid_score, valid_dic['loss'], lastmodel
@@ -120,9 +127,6 @@ def main():
         if n_patience >= args.patience:
             utils.info_message("\nValid auc didn't improve last {} epochs.", args.patience)
             break
-    
-    train_result.to_csv(os.path.join(output_dir, "train.csv"), index=False)
-    valid_result.to_csv(os.path.join(output_dir, "valid.csv"), index=False)
 
 if __name__ == "__main__":
     main()

@@ -39,7 +39,6 @@ def load_dicom_image3d(filelist_str, n_slice, img_size):
         if study_date == first_date and study_time == first_time:
             dicoms.append(dcm)
     
-    # 時系列データとしてまとめる
     z_pos = [float(d.ImagePositionPatient[-1]) for d in dicoms] # 実際の頭部CTはImagePositionPatient[-1]
     img_list = [cv2.resize(d.pixel_array, (img_size, img_size)) for d in dicoms]
     img_shape = img_list[0].shape
@@ -47,17 +46,17 @@ def load_dicom_image3d(filelist_str, n_slice, img_size):
     img_list = [img for _, img in sorted(zip(z_pos, img_list), key=lambda x: x[0])]
     img = np.stack(img_list)
     
-    # Depthを同じにする
+    # SSS
     # middle = len(dicoms)//2
     # num_imgs2 = n_slice//2
     # p1 = max(0, middle - num_imgs2)
     # p2 = min(len(dicoms), middle + num_imgs2)
     # img = img[p1:p2]
-
     # # スライス数が足りない場合、スライス軸に対してゼロで埋める
     # if len(img) < n_slice:
     #     img = np.pad(img, ((0, n_slice - len(img)), (0, 0), (0, 0)), mode='constant', constant_values=0)
 
+    # SIZ
     img = change_depth_siz(img, n_slice)
     
     # convert to HU
@@ -72,20 +71,16 @@ def load_dicom_image3d(filelist_str, n_slice, img_size):
     
     return np.expand_dims(img, 0)
 
-def windowing(img, WL=40, WW=80):
-    
-    # upper, lower = WL+WW//2, WL-WW//2
-    # X = np.clip(img.copy(), lower, upper)
+def windowing(img):
     X = np.clip(img.copy(), 15, 100)
-    # 正規化
-    if np.min(X) < np.max(X): # Xがすべて同じ値を持つとき、Falseとなる
+    # min-max normalization
+    if np.min(X) < np.max(X):
         X = X - np.min(X)
         X = X / np.max(X)
     return X
 
 
 def crop_image(image, display=False):
-
     # Create a mask with the background pixels
     mask = image == 0
     # Find the brain area
@@ -99,7 +94,6 @@ def crop_image(image, display=False):
         
         # Remove the background by cropping the image using the top-left and bottom-right coordinates
         cropped_image = image[top_left[0]:bottom_right[0], top_left[1]:bottom_right[1]]
-        
         return cropped_image
     else:
         # Handle the case when coords is empty by returning the original image

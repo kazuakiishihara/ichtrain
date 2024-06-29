@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
-import data_utils, extract_encoder, engine_train, utils
+from train_Saiseikai import data_utils, extract_encoder, engine_train, utils
 
 def main():
     parser = argparse.ArgumentParser()
@@ -33,7 +33,7 @@ def main():
     parser.add_argument('--log_dir', default='./trained_model', type=str,
                         help='path where to save, empty for no saving')
     parser.add_argument('--event', default='mRS6', type=str,
-                        help='event: mRS6 or mRS3-5')
+                        help='event: mRS6, mRS3-5 or mRS3-6')
 
     # Training parameters
     parser.add_argument('--seed', default=178, type=int)
@@ -45,6 +45,7 @@ def main():
 
     args = parser.parse_args()
 
+    utils.set_seed(args.seed)
     device = torch.device(args.device)
     current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     log_dir = os.path.join(args.log_dir, current_time)
@@ -52,8 +53,8 @@ def main():
     best_valid_score = 0
     lastmodel = None
 
-    utils.set_seed(args.seed)
     os.makedirs(log_dir, exist_ok=True)
+    utils.save_args(args, log_dir, os.path.basename(__file__))
     log_writer = SummaryWriter(log_dir=log_dir)
 
     train_loader, valid_loader, test_loader = data_utils.get_loader(args)
@@ -63,7 +64,7 @@ def main():
     elif args.model == 'Unet3d':
         if args.resume is not None:
             model_pth = args.resume
-            model = extract_encoder.transfer_Unet3d_en_latent(model_pth)
+            model = extract_encoder.transfer_Unet3d_en(model_pth)
         else:
             model = extract_encoder.Unet3d_en()
     model.to(device, non_blocking=True)
@@ -81,7 +82,7 @@ def main():
         train_dic, valid_dic, test_dic = engine_train.train_one_epoch(
                     model, train_loader, valid_loader, test_loader,
                     optimizer, criterion, epoch,
-                    device, log_writer=log_writer, args=args
+                    device, args=args
                     )
         
         # Train log_writer
@@ -92,7 +93,7 @@ def main():
         log_writer.add_scalar('Train/SEN', scalar_value=train_dic['sen'], global_step=epoch)
         log_writer.add_scalar('Train/SPE', scalar_value=train_dic['spe'], global_step=epoch)
         log_writer.add_scalar('Train/PRE', scalar_value=train_dic['pre'], global_step=epoch)
-        # Train log_writer
+        # Valid log_writer
         log_writer.add_scalar('Valid/Loss', scalar_value=valid_dic['loss'], global_step=epoch)
         log_writer.add_scalar('Valid/ROC-AUC', scalar_value=valid_dic['auc'], global_step=epoch)
         log_writer.add_scalar('Valid/ACC', scalar_value=valid_dic['acc'], global_step=epoch)
@@ -100,7 +101,7 @@ def main():
         log_writer.add_scalar('Valid/SEN', scalar_value=valid_dic['sen'], global_step=epoch)
         log_writer.add_scalar('Valid/SPE', scalar_value=valid_dic['spe'], global_step=epoch)
         log_writer.add_scalar('Valid/PRE', scalar_value=valid_dic['pre'], global_step=epoch)
-        # Train log_writer
+        # Test log_writer
         log_writer.add_scalar('Test/Loss', scalar_value=test_dic['loss'], global_step=epoch)
         log_writer.add_scalar('Test/ROC-AUC', scalar_value=test_dic['auc'], global_step=epoch)
         log_writer.add_scalar('Test/ACC', scalar_value=test_dic['acc'], global_step=epoch)

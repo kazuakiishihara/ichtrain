@@ -7,7 +7,7 @@ import torch
 from torch.utils import data as torch_data
 from torchvision import transforms as transforms
 
-import preprocessing
+from train_Saiseikai import preprocessing
 
 class Dataset(torch_data.Dataset):
     def __init__(self, csv, pid, n_slice, img_size):
@@ -30,7 +30,9 @@ class Dataset(torch_data.Dataset):
 def aug(img):
     random_seed = random.randint(0,1e+8)
     transform = transforms.Compose([
-        transforms.RandomRotation(degrees=30)
+        transforms.RandomRotation(degrees=30),
+        transforms.RandomHorizontalFlip(0.3),
+        transforms.RandomVerticalFlip(0.3)
     ])
     img_list = []
     for img_data in img:
@@ -71,24 +73,19 @@ class Dataset_aug(torch_data.Dataset):
 
 def get_loader(args):
     # 2. mRS
-    df = pd.read_csv('D:/main_saiseikai/v7_APAMI/poor_prognosis_add_headCTinfo.csv') # df.shape: (527, 8)
-    df = df[df['analysis_headCT_num'] != 0] # df.shape: (527, 8)
-    df = df[(df['analysis_headCT_num'] >= 1) & (df['analysis_headCT_num'] <= 45)] # df.shape: (527, 8)
+    df = pd.read_csv('D:/main_saiseikai/v7_APAMI/poor_prognosis_add_headCTinfo.csv') # df: (527, 8)
 
     if args.event == 'mRS6':
         df['obj'] = df['discharge_mRS'].apply(lambda x: 1 if x == 6 else 0) # event: mRS6, (1,0) = (76, 451)
+    elif args.event == 'mRS3-6':
+        df['obj'] = df['discharge_mRS'].apply(lambda x: 1 if x >= 3 and x <= 6 else 0) # event: mRS3-6, (1,0) = (420, 107)
     elif args.event == 'mRS3-5':
         df = df[df['discharge_mRS'] != 6] # df.shape: (451, 8)
         df['obj'] = df['discharge_mRS'].apply(lambda x: 1 if x >= 3 and x <= 5 else 0) # event: mRS3-5, (1,0) = (344, 107)
 
-    df_train, df_test = train_test_split(df, 
-                                        test_size=0.4,
-                                        stratify=df['obj'],
-                                        random_state=22)
-    df_train, df_valid = train_test_split(df_train,
-                                        test_size=0.4,
-                                        stratify=df_train['obj'],
-                                        random_state=22)
+    df_train, df_test = df[df['train_or_test']=='train'], df[df['train_or_test']=='test'] # df_train: (352, 8), df_test: (175, 8)
+    df_train, df_valid = train_test_split(df_train, test_size=0.3, stratify=df_train['obj'], random_state=22) # df_train: (246, 9), df_valid: (106, 9)
+    
     train_dataset = Dataset_aug(df_train, df_train["pid"].values, args.n_slice, args.img_size)
     valid_dataset = Dataset(df_valid, df_valid["pid"].values, args.n_slice, args.img_size)
     test_dataset = Dataset(df_test, df_test["pid"].values, args.n_slice, args.img_size)

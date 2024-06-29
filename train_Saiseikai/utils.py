@@ -16,6 +16,13 @@ def set_seed(seed):
 def info_message(message, *args, end="\n"):
     print(message.format(*args), end=end)
 
+def save_args(args, log_dir, file):
+    log_file = os.path.join(log_dir, 'log.txt')
+    with open(log_file, 'w') as f:
+        f.write(f'Script name: {file}\n')
+        for arg in vars(args):
+            f.write(f'{arg}: {getattr(args, arg)}\n')
+
 def metrics(label_li, prob_li):
     auc = roc_auc_score(label_li, prob_li)
     

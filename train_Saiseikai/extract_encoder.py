@@ -69,31 +69,3 @@ def transfer_Unet3d_en(path):
     model.load_state_dict(checkpoint['model_state_dict'])
     model = Unet3d_en(model=model)
     return model
-
-class Unet3d_en_latent(nn.Module):
-    def __init__(self, model=None):
-        super().__init__()
-        if model is not None:
-            model = model
-        else:
-            model = UNet3D(in_channels=1, out_channels=1)
-        self.encoders = model.encoders
-        self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
-        self.fc1 = nn.Linear(512, 128)
-        self.fc2 = nn.Linear(128, 1)
-
-    def forward(self, x):
-        for encoder in self.encoders:
-            x = encoder(x)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc1(x)
-        x = self.fc2(x)
-        return x
-
-def transfer_Unet3d_en_latent(path):
-    model = UNet3D(in_channels=1, out_channels=1)
-    checkpoint = torch.load(path)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model = Unet3d_en_latent(model=model)
-    return model
