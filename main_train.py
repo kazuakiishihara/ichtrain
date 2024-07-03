@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
-from train_Saiseikai import data_utils, extract_encoder, engine_train, utils
+from train_Saiseikai import data_utils, extract_encoder, engine_train, utils, tensorboard_to_csv
 
 def main():
     parser = argparse.ArgumentParser()
@@ -34,13 +34,15 @@ def main():
                         help='path where to save, empty for no saving')
     parser.add_argument('--event', default='mRS6', type=str,
                         help='event: mRS6, mRS3-5 or mRS3-6')
+    parser.add_argument('--data_aug', default=5, type=int,
+                        help='scalar multiplication of data volume')
 
     # Training parameters
     parser.add_argument('--seed', default=178, type=int)
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
     parser.add_argument('--num_workers', default=8, type=int)
-    parser.add_argument('--pos_weight', default=5.75, type=float)
+    parser.add_argument('--pos_weight', default=True, type=bool)
     parser.add_argument("--resume", default=None, type=str, help="resume training")
 
     args = parser.parse_args()
@@ -69,7 +71,7 @@ def main():
             model = extract_encoder.Unet3d_en()
     model.to(device, non_blocking=True)
 
-    criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(args.pos_weight))
+    criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(data_utils.pos_weight(args)))
 
     if args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.decay)
@@ -137,6 +139,8 @@ def main():
         if n_patience >= args.patience:
             utils.info_message("\nValid auc didn't improve last {} epochs.", args.patience)
             break
+    print('Done!!')
+    utils.to_csv(log_dir)
 
 if __name__ == "__main__":
     main()

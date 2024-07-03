@@ -31,12 +31,12 @@ python main_pretrain.py --epochs 50
 python run.py
 '''
 
-Git Bashターミナルで実行
->./run_commands.sh
+powerpointターミナルで実行
+>./run_commands.ps1
 
 
 6. pytorchのtensorboardで結果を見る
->tensorboard --logdir ./trained_model/20240626_142459 # ログファイルが含まっているフォルダーまで
+>tensorboard --logdir ./trained_model/20240702_155008 # ログファイルが含まっているフォルダーまで
 .tensorboard --logdir=runs
 デフォルトだとlocalhost:6006にアクセスする
 
@@ -53,7 +53,7 @@ Git Bashターミナルで実行
 git add . # すべての変更されたファイルをステージングエリアに追加する
 git commit -m "メッセージ"
 git remote add origin https://github.com/kazuakiishihara/ichtrain.git
-git push -u origin main
+git push -u origin main # 次回以降はgit pushでおけ
 
 git reset --soft HEAD^ # 直前のコミットの取り消し
 

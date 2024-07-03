@@ -59,9 +59,9 @@ class Unet3d_en(nn.Module):
         for encoder in self.encoders:
             x = encoder(x)
         x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        return x
+        z = x.view(x.size(0), -1)
+        x = self.fc(z)
+        return x, z
 
 def transfer_Unet3d_en(path):
     model = UNet3D(in_channels=1, out_channels=1)

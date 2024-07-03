@@ -46,10 +46,10 @@ def aug(img):
     return np.stack(img_list)
 
 class Dataset_aug(torch_data.Dataset):
-    def __init__(self, csv, pid, n_slice, img_size):
+    def __init__(self, csv, pid, n_slice, img_size, args):
         self.csv = csv
         self.pid = [(el, 'none') for el in pid]
-        time = 5
+        time = args.data_aug
         for _ in range(time-1):
             self.pid.extend([(el, 'aug') for el in pid])
         self.n_slice = n_slice
@@ -71,8 +71,7 @@ class Dataset_aug(torch_data.Dataset):
         
         return {"X" : torch.tensor(img).float(), "y" : torch.tensor(y).float()}
 
-def get_loader(args):
-    # 2. mRS
+def split_data(args):
     df = pd.read_csv('D:/main_saiseikai/v7_APAMI/poor_prognosis_add_headCTinfo.csv') # df: (527, 8)
 
     if args.event == 'mRS6':
@@ -82,11 +81,16 @@ def get_loader(args):
     elif args.event == 'mRS3-5':
         df = df[df['discharge_mRS'] != 6] # df.shape: (451, 8)
         df['obj'] = df['discharge_mRS'].apply(lambda x: 1 if x >= 3 and x <= 5 else 0) # event: mRS3-5, (1,0) = (344, 107)
-
-    df_train, df_test = df[df['train_or_test']=='train'], df[df['train_or_test']=='test'] # df_train: (352, 8), df_test: (175, 8)
-    df_train, df_valid = train_test_split(df_train, test_size=0.3, stratify=df_train['obj'], random_state=22) # df_train: (246, 9), df_valid: (106, 9)
     
-    train_dataset = Dataset_aug(df_train, df_train["pid"].values, args.n_slice, args.img_size)
+    df_train, df_test = df[df['train_or_test']=='train'], df[df['train_or_test']=='test'] 
+    df_train, df_valid = train_test_split(df_train, test_size=0.3, stratify=df_train['obj'], random_state=22)
+
+    return df_train, df_valid, df_test
+
+def get_loader(args):
+    df_train, df_valid, df_test = split_data(args)
+
+    train_dataset = Dataset_aug(df_train, df_train["pid"].values, args.n_slice, args.img_size, args)
     valid_dataset = Dataset(df_valid, df_valid["pid"].values, args.n_slice, args.img_size)
     test_dataset = Dataset(df_test, df_test["pid"].values, args.n_slice, args.img_size)
     
@@ -98,3 +102,11 @@ def get_loader(args):
         test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
     
     return train_loader, valid_loader, test_loader
+
+def pos_weight(args):
+    if args.pos_weight:
+        df_train, df_valid, df_test = split_data(args)
+        pos_weight = df_train['obj'].value_counts()[0] / df_train['obj'].value_counts()[1]
+    else:
+        pos_weight = 1
+    return pos_weight
