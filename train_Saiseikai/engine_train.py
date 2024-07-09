@@ -8,22 +8,14 @@ import torch
 from train_Saiseikai import utils
 
 def train_one_epoch(model, train_loader, valid_loader, test_loader,
-                    optimizer, criterion, epoch,
-                    device, args=None):
-    train_dic = train_epoch(model, train_loader,
-                optimizer, criterion, epoch,
-                device, args=None)
-    valid_dic = valid_and_test_epoch(model, valid_loader,
-                optimizer, criterion, epoch,
-                device, args=None)
-    test_dic = valid_and_test_epoch(model, test_loader,
-                optimizer, criterion, epoch,
-                device, args=None)
+                    criterion, device,
+                    optimizer):
+    train_dic = train_epoch(model, train_loader, criterion, device, optimizer)
+    valid_dic = valid_and_test_epoch(model, valid_loader, criterion, device)
+    test_dic = valid_and_test_epoch(model, test_loader, criterion, device)
     return train_dic, valid_dic, test_dic
 
-def train_epoch(model, loader,
-                optimizer, criterion, epoch,
-                device, args=None):
+def train_epoch(model, loader, criterion, device, optimizer):
     model.train()
     scaler = torch.cuda.amp.GradScaler()
     t = time.time()
@@ -36,7 +28,7 @@ def train_epoch(model, loader,
         optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            outputs = model(X)
+            outputs, latent = model(X)
             outputs = outputs.squeeze(1)
             prob = torch.sigmoid(outputs)
             prob_li.extend(prob.detach().clone().to('cpu').tolist())
@@ -61,9 +53,7 @@ def train_epoch(model, loader,
             'pre' : pre,
             'time' : int(time.time() - t)}
 
-def valid_and_test_epoch(model, loader,
-                optimizer, criterion, epoch,
-                device, args=None):
+def valid_and_test_epoch(model, loader, criterion, device):
     model.eval()
     t = time.time()
     loss_valid = []
@@ -75,7 +65,7 @@ def valid_and_test_epoch(model, loader,
             targets = batch["y"].to(device, non_blocking=True)
 
             with torch.cuda.amp.autocast():
-                outputs = model(X)
+                outputs, latent = model(X)
                 outputs = outputs.squeeze(1)
                 prob = torch.sigmoid(outputs)
                 prob_li.extend(prob.detach().clone().to('cpu').tolist())

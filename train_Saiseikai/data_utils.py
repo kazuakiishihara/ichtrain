@@ -10,21 +10,21 @@ from torchvision import transforms as transforms
 from train_Saiseikai import preprocessing
 
 class Dataset(torch_data.Dataset):
-    def __init__(self, csv, pid, n_slice, img_size):
-        self.csv = csv
-        self.pid = pid
-        self.n_slice = n_slice
-        self.img_size = img_size
+    def __init__(self, df, args):
+        self.df = df
+        self.pid = df["pid"].values
+        self.n_slice = args.n_slice
+        self.img_size = args.img_size
     
     def __len__(self):
         return len(self.pid)
     
     def __getitem__(self, index):
         id = self.pid[index]
-        filelist_str = self.csv.loc[self.csv["pid"] == id, "headCT_path_list"].values[0]
+        filelist_str = self.df.loc[self.df["pid"] == id, "headCT_path_list"].values[0]
         img = preprocessing.load_dicom_image3d(filelist_str, self.n_slice, self.img_size)
         
-        y = self.csv.loc[self.csv["pid"] == id, "obj"].values[0]
+        y = self.df.loc[self.df["pid"] == id, "obj"].values[0]
         return {"X" : torch.tensor(img).float(), "y" : torch.tensor(y).float()}
 
 def aug(img):
@@ -46,23 +46,23 @@ def aug(img):
     return np.stack(img_list)
 
 class Dataset_aug(torch_data.Dataset):
-    def __init__(self, csv, pid, n_slice, img_size, args):
-        self.csv = csv
-        self.pid = [(el, 'none') for el in pid]
+    def __init__(self, df, args):
+        self.df = df
+        self.pid = [(el, 'none') for el in df["pid"].values]
         time = args.data_aug
         for _ in range(time-1):
-            self.pid.extend([(el, 'aug') for el in pid])
-        self.n_slice = n_slice
-        self.img_size = img_size
+            self.pid.extend([(el, 'aug') for el in df["pid"].values])
+        self.n_slice = args.n_slice
+        self.img_size = args.img_size
 
     def __len__(self):
         return len(self.pid)
 
     def __getitem__(self, index):
         id = self.pid[index][0]
-        filelist_str = self.csv.loc[self.csv["pid"] == id, "headCT_path_list"].values[0]
+        filelist_str = self.df.loc[self.df["pid"] == id, "headCT_path_list"].values[0]
         img = preprocessing.load_dicom_image3d(filelist_str, self.n_slice, self.img_size)
-        y = self.csv.loc[self.csv["pid"] == id, "obj"].values[0]
+        y = self.df.loc[self.df["pid"] == id, "obj"].values[0]
 
         if self.pid[index][1] == 'aug':
             img = np.squeeze(img)
@@ -72,7 +72,7 @@ class Dataset_aug(torch_data.Dataset):
         return {"X" : torch.tensor(img).float(), "y" : torch.tensor(y).float()}
 
 def split_data(args):
-    df = pd.read_csv('D:/main_saiseikai/v7_APAMI/poor_prognosis_add_headCTinfo.csv') # df: (527, 8)
+    df = pd.read_csv('D:/main_saiseikai/v8/poor_prognosis_add_headCTinfo.csv') # df: (527, 8)
 
     if args.event == 'mRS6':
         df['obj'] = df['discharge_mRS'].apply(lambda x: 1 if x == 6 else 0) # event: mRS6, (1,0) = (76, 451)
@@ -90,9 +90,9 @@ def split_data(args):
 def get_loader(args):
     df_train, df_valid, df_test = split_data(args)
 
-    train_dataset = Dataset_aug(df_train, df_train["pid"].values, args.n_slice, args.img_size, args)
-    valid_dataset = Dataset(df_valid, df_valid["pid"].values, args.n_slice, args.img_size)
-    test_dataset = Dataset(df_test, df_test["pid"].values, args.n_slice, args.img_size)
+    train_dataset = Dataset_aug(df_train, args)
+    valid_dataset = Dataset(df_valid, args)
+    test_dataset = Dataset(df_test, args)
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)

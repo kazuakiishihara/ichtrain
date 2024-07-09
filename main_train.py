@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
-from train_Saiseikai import data_utils, extract_encoder, engine_train, utils, tensorboard_to_csv
+from train_Saiseikai import data_utils, extract_encoder, engine_train, utils
 
 def main():
     parser = argparse.ArgumentParser()
@@ -61,9 +61,7 @@ def main():
 
     train_loader, valid_loader, test_loader = data_utils.get_loader(args)
 
-    if args.model == 'MedNeXt':
-        model = extract_encoder.MedNeXt_en()
-    elif args.model == 'Unet3d':
+    if args.model == 'Unet3d':
         if args.resume is not None:
             model_pth = args.resume
             model = extract_encoder.transfer_Unet3d_en(model_pth)
@@ -83,8 +81,8 @@ def main():
 
         train_dic, valid_dic, test_dic = engine_train.train_one_epoch(
                     model, train_loader, valid_loader, test_loader,
-                    optimizer, criterion, epoch,
-                    device, args=args
+                    criterion, device,
+                    optimizer
                     )
         
         # Train log_writer

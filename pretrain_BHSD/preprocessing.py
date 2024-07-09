@@ -20,20 +20,22 @@ def load_image3d(data, n_slice, img_size): # return ndarray (1,22,256,256)
 
     img, mask = np.stack([np.rot90(windowing(cv2.resize(slice, (img_size, img_size)))) for slice in img]), np.stack([np.rot90(cv2.resize(slice, (img_size, img_size), interpolation=cv2.INTER_NEAREST)) for slice in mask])
     
-    img, mask = change_depth_siz(img, n_slice), change_depth_siz(mask, n_slice)
-    # Fixed slice number
+    # SSS
     # middle = img.shape[0] //2
     # num_imgs2 = n_slice//2
     # p1 = max(0, middle - num_imgs2)
     # p2 = min(img.shape[0], middle + num_imgs2)
     # img, mask = img[p1:p2], mask[p1:p2]
+
+    # SIZ
+    img, mask = change_depth_siz(img, n_slice), change_depth_siz(mask, n_slice)
+
     return np.expand_dims(img, 0), np.expand_dims(mask, 0)
 
 def windowing(img, lower=0, upper=120):
     X = np.clip(img.copy(), lower, upper)
-
-    # min-max method
-    if np.min(X) < np.max(X): # Xがすべて同じ値を持つとき、Falseとなる
+    # min-max normalization
+    if np.min(X) < np.max(X):
         X = X - np.min(X)
         X = X / np.max(X)
     return X

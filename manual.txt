@@ -42,11 +42,14 @@ powerpointターミナルで実行
 
 
 
---------------------------------仮想環境下でinstall packages
->pip install -r requirements.txt
-
+--------------------------------requirements.txt
 このライブラリーをインストールするコマンドは「.\venv\Scripts\activate」で仮想環境のプロンプトで実行する
 
+仮想環境下でinstall packages
+>pip install -r requirements.txt
+
+出力
+>pip freeze > requirements.txt
 
 
 --------------------------------Githubにpushする（Git Bashターミナルで行う）

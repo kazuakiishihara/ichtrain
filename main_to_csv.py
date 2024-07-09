@@ -52,11 +52,11 @@ def to_csv():
     df_train.loc[df_train.index.isin(valid.index), 'train_or_valid'] = 'valid'
     df_train, df_test = df_train.reset_index(drop=True), df_test.reset_index(drop=True)
 
-    train_dataset = data_utils.Dataset(df_train, df_train["pid"].values, args.n_slice, args.img_size)
-    test_dataset = data_utils.Dataset(df_test, df_test["pid"].values, args.n_slice, args.img_size)
+    train_dataset = data_utils.Dataset(df_train, args)
+    test_dataset = data_utils.Dataset(df_test, args)
     
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+        train_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
 

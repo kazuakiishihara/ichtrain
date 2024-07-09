@@ -6,10 +6,10 @@ from torch.utils import data as torch_data
 from pretrain_BHSD import preprocessing
 
 class Dataset(torch_data.Dataset):
-    def __init__(self, data, n_slice=22, img_size=256):
-        self.data = data # tapleのリスト
-        self.n_slice = n_slice
-        self.img_size = img_size
+    def __init__(self, data, args):
+        self.data = data
+        self.n_slice = args.n_slice
+        self.img_size = args.img_size
 
     def __len__(self):
         return len(self.data)
@@ -36,8 +36,8 @@ def get_loader(args):
     train = [(path_img[index], path_label[index]) for index in train_sampling]
     valid = [(path_img[index], path_label[index]) for index in valid_sampling]
 
-    train_dataset = Dataset(train, args.n_slice, args.img_size)
-    valid_dataset = Dataset(valid, args.n_slice, args.img_size)
+    train_dataset = Dataset(train, args)
+    valid_dataset = Dataset(valid, args)
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)

@@ -5,19 +5,13 @@ import torch
 from pretrain_BHSD import metrics, utils
 
 def train_one_epoch(model, train_loader, valid_loader,
-                    optimizer, criterion, epoch,
-                    device, args=None):
-    train_dic = train_epoch(model, train_loader,
-                optimizer, criterion, epoch,
-                device, args=None)
-    valid_dic = valid_and_test_epoch(model, valid_loader,
-                optimizer, criterion, epoch,
-                device, args=None)
+                    criterion, device,
+                    optimizer):
+    train_dic = train_epoch(model, train_loader, criterion, device, optimizer)
+    valid_dic = valid_and_test_epoch(model, valid_loader, criterion, device)
     return train_dic, valid_dic
 
-def train_epoch(model, loader,
-                optimizer, criterion, epoch,
-                device, args=None):
+def train_epoch(model, loader, criterion, device, optimizer):
     model.train()
     scaler = torch.cuda.amp.GradScaler()
     t = time.time()
@@ -48,9 +42,7 @@ def train_epoch(model, loader,
             'mse' : sum_mse/len(loader),
             'time' : int(time.time() - t)}
 
-def valid_and_test_epoch(model, loader,
-                optimizer, criterion, epoch,
-                device, args=None):
+def valid_and_test_epoch(model, loader, criterion, device):
     model.eval()
     t = time.time()
     sum_loss, sum_dice, sum_mse = 0, 0, 0

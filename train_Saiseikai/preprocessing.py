@@ -10,7 +10,7 @@ def load_dicom_image3d(filelist_str, n_slice, img_size):
     
     dicom_files = filelist_str.split(';')[:-1]
     dicoms_all = []
-    for d in dicom_files: # ImagePositionPatient属性を持っていない時の例外処理
+    for d in dicom_files:
         try:
             dicom_data = pydicom.dcmread(d)
             if hasattr(dicom_data, 'pixel_array') and hasattr(dicom_data, 'ImagePositionPatient'):
@@ -25,12 +25,10 @@ def load_dicom_image3d(filelist_str, n_slice, img_size):
         study_date = dcm.StudyDate
         study_time = dcm.StudyTime
 
-        # 最初の日付と時間を設定
         if first_date is None or (study_date < first_date) or (study_date == first_date and study_time < first_time):
             first_date = study_date
             first_time = study_time
 
-    # 最初の日付と時間に一致するDICOMデータを抽出
     dicoms = []
     for dcm in dicoms_all:
         study_date = dcm.StudyDate
@@ -39,7 +37,7 @@ def load_dicom_image3d(filelist_str, n_slice, img_size):
         if study_date == first_date and study_time == first_time:
             dicoms.append(dcm)
     
-    z_pos = [float(d.ImagePositionPatient[-1]) for d in dicoms] # 実際の頭部CTはImagePositionPatient[-1]
+    z_pos = [float(d.ImagePositionPatient[-1]) for d in dicoms]
     img_list = [cv2.resize(d.pixel_array, (img_size, img_size)) for d in dicoms]
     img_shape = img_list[0].shape
     img_list = [cv2.resize(img, (img_size, img_size)) for img in img_list if img.shape == img_shape]
@@ -52,7 +50,6 @@ def load_dicom_image3d(filelist_str, n_slice, img_size):
     # p1 = max(0, middle - num_imgs2)
     # p2 = min(len(dicoms), middle + num_imgs2)
     # img = img[p1:p2]
-    # # スライス数が足りない場合、スライス軸に対してゼロで埋める
     # if len(img) < n_slice:
     #     img = np.pad(img, ((0, n_slice - len(img)), (0, 0), (0, 0)), mode='constant', constant_values=0)
 

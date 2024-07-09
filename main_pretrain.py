@@ -8,7 +8,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 from pretrain_BHSD import data_utils, metrics, engine_pretrain, utils
 from models.unet3d.model import *
-from models.mednext.MedNextV1 import *
 
 def main():
     parser = argparse.ArgumentParser()
@@ -58,24 +57,7 @@ def main():
 
     train_loader, valid_loader = data_utils.get_loader(args)
 
-    if args.model == 'MedNeXt':
-        model = MedNeXt(
-                        in_channels = 1,                          # input channels
-                        n_channels = 32,                          # number of base channels
-                        n_classes = 1,                            # number of classes
-                        exp_r = 4,                                # Expansion ratio in Expansion Layer
-                        kernel_size = 7,                          # Kernel Size in Depthwise Conv. Layer
-                        enc_kernel_size = None,                   # (Separate) Kernel Size in Encoder
-                        dec_kernel_size = None,                   # (Separate) Kernel Size in Decoder
-                        deep_supervision = False,                 # Enable Deep Supervision
-                        do_res = False,                           # Residual connection in MedNeXt block
-                        do_res_up_down = False,                   # Residual conn. in Resampling blocks
-                        checkpoint_style = None,                  # Enable Gradient Checkpointing
-                        block_counts = [1,1,1,1,2,1,1,1,1],       # Depth-first no. of blocks per layer 
-                        norm_type = 'group',                      # Type of Norm: 'group' or 'layer'
-                        dim = '3d'                                # Supports `3d', '2d' arguments
-            )
-    elif args.model == 'Unet3d':
+    if args.model == 'Unet3d':
         model = UNet3D(in_channels=1, out_channels=1, is_segmentation=False)
     model.to(device, non_blocking=True)
 
@@ -90,10 +72,10 @@ def main():
         utils.info_message("EPOCH: {}", epoch)
 
         train_dic, valid_dic = engine_pretrain.train_one_epoch(
-                    model, train_loader, valid_loader,
-                    optimizer, criterion, epoch,
-                    device, args=args
-                    )
+                                                model, train_loader, valid_loader,
+                                                criterion, device,
+                                                optimizer
+                                                )
         
         # Train log_writer
         log_writer.add_scalar('Train/Loss', scalar_value=train_dic['loss'], global_step=epoch)
