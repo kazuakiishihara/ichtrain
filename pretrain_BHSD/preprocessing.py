@@ -3,14 +3,13 @@ import nibabel as nib
 import numpy as np
 from scipy.ndimage import zoom
 
+def get_nifti(dat):
+    dat = nib.load(dat)
+    dat = dat.get_fdata()
+    dat = np.transpose(dat, axes=(2, 0, 1))
+    return dat
+
 def load_image3d(data, n_slice, img_size): # return ndarray (1,22,256,256)
-
-    def get_nifti(dat):
-        dat = nib.load(dat)
-        dat = dat.get_fdata()
-        dat = np.transpose(dat, axes=(2, 0, 1))
-        return dat
-
     img, mask = data
     img, mask = get_nifti(img), get_nifti(mask)
 
@@ -34,7 +33,6 @@ def load_image3d(data, n_slice, img_size): # return ndarray (1,22,256,256)
 
 def windowing(img, lower=0, upper=120):
     X = np.clip(img.copy(), lower, upper)
-    # min-max normalization
     if np.min(X) < np.max(X):
         X = X - np.min(X)
         X = X / np.max(X)
