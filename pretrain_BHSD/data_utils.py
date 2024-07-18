@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import random
 import torch
@@ -26,15 +27,22 @@ def get_loader(args):
 
     file_names = os.listdir(folder_path_img)
 
-    path_img = [os.path.join(folder_path_img, file_name) for file_name in file_names]
-    path_label = [os.path.join(folder_path_label, file_name) for file_name in file_names]
+    path_imgs = [os.path.join(folder_path_img, file_name) for file_name in file_names]
+    path_labels = [os.path.join(folder_path_label, file_name) for file_name in file_names]
 
+    li_img, li_label = [], []
+    for path_img, path_label in zip(path_imgs, path_labels):
+        mask = preprocessing.get_nifti(path_label)
 
-    train_sampling = random.sample(range(192), 115)
-    valid_sampling = [index for index in range(192) if index not in train_sampling]
+        if np.sum(mask == 2) >= 1 or np.sum(mask == 3) >= 1:
+            li_img.append(path_img)
+            li_label.append(path_label)
 
-    train = [(path_img[index], path_label[index]) for index in train_sampling]
-    valid = [(path_img[index], path_label[index]) for index in valid_sampling]
+    train_sampling = random.sample(range(len(li_img)), int(len(li_label)*0.7) )
+    valid_sampling = [index for index in range(len(li_img)) if index not in train_sampling]
+
+    train = [(li_img[index], li_label[index]) for index in train_sampling]
+    valid = [(li_img[index], li_label[index]) for index in valid_sampling]
 
     train_dataset = Dataset(train, args)
     valid_dataset = Dataset(valid, args)
