@@ -33,7 +33,7 @@ def to_csv():
     log_dir = args.log_dir
     os.makedirs(log_dir, exist_ok=True)
 
-    df = pd.read_csv('D:/main_saiseikai/v7_APAMI/poor_prognosis_add_headCTinfo.csv') # df.shape: (527, 8)
+    df = pd.read_csv('D:/main_saiseikai/v8/poor_prognosis_add_headCTinfo.csv') # df.shape: (527, 8)
 
     if args.event == 'mRS6':
         df['obj'] = df['discharge_mRS'].apply(lambda x: 1 if x == 6 else 0) # event: mRS6, (1,0) = (76, 451)
@@ -67,46 +67,67 @@ def to_csv():
     model.eval()
 
     # Train csv
-    train_latent = []
+    train_latent512, train_latent128 = [], []
     for step, batch in enumerate(train_loader, 1):
         with torch.no_grad():
             X = batch["X"].to(device, non_blocking=True)
-            targets = batch["y"].to(device, non_blocking=True)
-
             with torch.cuda.amp.autocast():
-                outputs, latent = model(X)
+                outputs, latent512, latent128 = model(X)
                 outputs = outputs.squeeze(1)
-                train_latent.append(latent.detach().clone().to('cpu'))
+                train_latent512.append(latent512.detach().clone().to('cpu'))
+                train_latent128.append(latent128.detach().clone().to('cpu'))
 
         message = 'Train Step {}/{}'
         utils.info_message(message, step, len(train_loader), end="\r")
 
     df_train = df_train.drop('headCT_path_list', axis=1)
-    train_latent = torch.cat(train_latent, dim=0)
-    df_latent = pd.DataFrame(train_latent.numpy(), columns=[f'dim{i}' for i in range(train_latent.shape[1])])
-    df_latent = pd.concat([df_train, df_latent], axis=1)
-    df_latent.to_csv(os.path.join(log_dir, args.event + '_TrainValid_latent.csv'), index=False)
+
+    # Latent dimention: 512
+    train_latent512 = torch.cat(train_latent512, dim=0)
+    df_train_latent512 = pd.DataFrame(train_latent512.numpy(), columns=[f'dim{i}' for i in range(train_latent512.shape[1])])
+    df_train_latent512 = pd.concat([df_train, df_train_latent512], axis=1)
+    df_train_latent512.to_csv(os.path.join(log_dir, args.event + '_TrainValid_latent512.csv'), index=False)
+
+    # Latent dimention: 128
+    train_latent128 = torch.cat(train_latent128, dim=0)
+    df_train_latent128 = pd.DataFrame(train_latent128.numpy(), columns=[f'dim{i}' for i in range(train_latent128.shape[1])])
+    df_train_latent128 = pd.concat([df_train, df_train_latent128], axis=1)
+    df_train_latent128.to_csv(os.path.join(log_dir, args.event + '_TrainValid_latent128.csv'), index=False)
 
     # Test csv
     test_prob = []
+    test_latent512, test_latent128 = [], []
     for step, batch in enumerate(test_loader, 1):
         with torch.no_grad():
             X = batch["X"].to(device, non_blocking=True)
-            targets = batch["y"].to(device, non_blocking=True)
-
             with torch.cuda.amp.autocast():
-                outputs, latent = model(X)
+                outputs, latent512, latent128 = model(X)
                 outputs = outputs.squeeze(1)
                 prob = torch.sigmoid(outputs)
                 test_prob.extend(prob.detach().clone().to('cpu').tolist())
+                test_latent512.append(latent512.detach().clone().to('cpu'))
+                test_latent128.append(latent128.detach().clone().to('cpu'))
 
         message = 'Test Step {}/{}'
         utils.info_message(message, step, len(test_loader), end="\r")
 
     df_test = df_test.drop('headCT_path_list', axis=1)
+
     df_prob = pd.DataFrame({'prob' : test_prob})
-    df_prob = pd.concat([df_test, df_prob], axis=1)
-    df_prob.to_csv(os.path.join(log_dir, args.event + '_Test_prob.csv'), index=False)
+    df_test_probLatent = pd.concat([df_test, df_prob], axis=1)
+    df_test_probLatent.to_csv(os.path.join(log_dir, args.event + '_Test_prob.csv'), index=False)
+
+    # Latent dimention: 512
+    test_latent512 = torch.cat(test_latent512, dim=0)
+    df_test_latent512 = pd.DataFrame(test_latent512.numpy(), columns=[f'dim{i}' for i in range(test_latent512.shape[1])])
+    df_test_latent512 = pd.concat([df_test, df_test_latent512], axis=1)
+    df_test_latent512.to_csv(os.path.join(log_dir, args.event + '_Test_latent512.csv'), index=False)
+
+    # Latent dimention: 128
+    test_latent128 = torch.cat(test_latent128, dim=0)
+    df_test_latent128 = pd.DataFrame(test_latent128.numpy(), columns=[f'dim{i}' for i in range(test_latent128.shape[1])])
+    df_test_latent128 = pd.concat([df_test, df_test_latent128], axis=1)
+    df_test_latent128.to_csv(os.path.join(log_dir, args.event + '_Test_latent128.csv'), index=False)
 
 if __name__ == '__main__':
     to_csv()
