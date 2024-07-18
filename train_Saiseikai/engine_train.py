@@ -28,7 +28,7 @@ def train_epoch(model, loader, criterion, device, optimizer):
         optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            outputs, latent = model(X)
+            outputs, latent512, latent128 = model(X)
             outputs = outputs.squeeze(1)
             prob = torch.sigmoid(outputs)
             prob_li.extend(prob.detach().clone().to('cpu').tolist())
@@ -65,7 +65,7 @@ def valid_and_test_epoch(model, loader, criterion, device):
             targets = batch["y"].to(device, non_blocking=True)
 
             with torch.cuda.amp.autocast():
-                outputs, latent = model(X)
+                outputs, latent512, latent128 = model(X)
                 outputs = outputs.squeeze(1)
                 prob = torch.sigmoid(outputs)
                 prob_li.extend(prob.detach().clone().to('cpu').tolist())
