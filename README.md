@@ -1,7 +1,7 @@
 # Intracerebral Hemorrhage study
 
 This repository contains for a paper.
-1. Performance of Multimodal Prediction Models for Intracerebral Hemorrhage Outcomes Using Real-World Data (under review) - [paper link]()
+- Performance of Multimodal Prediction Models for Intracerebral Hemorrhage Outcomes Using Real-World Data (under review) - [paper link]()
 
 The main files to run are:  
 `main_train.py` (for fine-tuning), `main_pretrain.py` (for pre-training)
