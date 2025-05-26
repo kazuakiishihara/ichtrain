@@ -9,6 +9,7 @@ The main files to run are:
 For access to the data used for pre-training in the papers, please refer to:
 - [BHSD](https://github.com/White65534/BHSD)
 
+```bibtex
 @article{MATSUMOTO2025105989,
   title={Performance of multimodal prediction models for intracerebral hemorrhage outcomes using real-world data},
   author={Koutarou Matsumoto, Masahiro Suzuki, Kazuaki Ishihara, Koki Tokunaga, Katsuhiko Matsuda, Jenhui Chen, Shigeo Yamashiro, Hidehisa Soejima, Naoki Nakashima, Masahiro Kamouchi},
